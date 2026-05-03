@@ -22,3 +22,11 @@
 **Why:** Credential-capture routes create more interesting security telemetry than passive file exposure because scanner and bot traffic often submits common username/password combinations. The pages are Worker-rendered instead of static assets so every page view and form submission reliably passes through logging.
 
 **Interview hook:** I built credential-focused honeypots that look like common internet-exposed admin surfaces while keeping them safe, stateless, and unable to execute or forward attacker input.
+
+## 2026-05-03 — Phase 4: Dashboard API routes
+
+**What:** Added the `honey-dashboard` Worker with `/api/overview` and `/api/map` routes backed by D1 queries.
+
+**Why:** Building the API before the UI keeps the dashboard clean: the frontend only needs to poll two JSON endpoints instead of embedding SQL or data-shaping logic in browser JavaScript.
+
+**Interview hook:** I separated telemetry collection from analytics presentation by giving the dashboard a small API layer that aggregates D1 events into security-friendly summaries.
