@@ -4,9 +4,607 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Honey Dashboard</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQgiPzMYONVcGKbM0NfJw9my1x7IZY="
+    crossorigin=""
+  >
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --border: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #fb7185;
+      --warning: #fbbf24;
+      --good: #34d399;
+      --table-row: #172033;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #1e293b, var(--bg) 45%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      padding: 28px 28px 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      max-width: 820px;
+      line-height: 1.5;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.72);
+      border-radius: 999px;
+      padding: 6px 10px;
+    }
+
+    main {
+      padding: 16px 28px 32px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 16px;
+    }
+
+    .content-grid {
+      grid-template-columns: 1.1fr 1fr;
+      align-items: start;
+    }
+
+    .tables-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+      padding: 18px;
+      min-width: 0;
+    }
+
+    .stat-card {
+      min-height: 116px;
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 750;
+      letter-spacing: -0.04em;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    canvas {
+      max-height: 280px;
+    }
+
+    #map {
+      height: 420px;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 8px;
+      white-space: nowrap;
+    }
+
+    td {
+      border-bottom: 1px solid rgba(51, 65, 85, 0.7);
+      padding: 10px 8px;
+      vertical-align: top;
+    }
+
+    tbody tr:nth-child(odd) {
+      background: rgba(23, 32, 51, 0.55);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 16px 4px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    .truncate {
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .scanner {
+      color: #082f49;
+      background: var(--accent);
+    }
+
+    .normal {
+      color: #052e16;
+      background: var(--good);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 980px) {
+      .stats-grid,
+      .content-grid,
+      .tables-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header,
+      main {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Honey Dashboard</h1>
-  <p>Dashboard UI will be built in Phase 5.</p>
+  <header>
+    <h1>Honey Dashboard</h1>
+    <p class="subtitle">
+      Centralized telemetry for the Workers-based deception network. The dashboard polls D1-backed API routes for recent hits,
+      scanner signals, attempted credentials, source networks, and geographic activity.
+    </p>
+    <div class="status-bar">
+      <span class="pill" id="last-updated">Last updated: never</span>
+      <span class="pill" id="refresh-status">Auto-refresh: every 5s</span>
+      <span class="pill">Data source: D1 hits table</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="grid stats-grid">
+      <article class="card stat-card">
+        <div class="stat-label">Total hits</div>
+        <div class="stat-value" id="total-hits">0</div>
+        <div class="stat-note">All captured requests across every bait Worker</div>
+      </article>
+
+      <article class="card stat-card">
+        <div class="stat-label">Known scanner percentage</div>
+        <div class="stat-value" id="scanner-percent">0%</div>
+        <div class="stat-note" id="scanner-note">0 known scanner hits</div>
+      </article>
+
+      <article class="card stat-card">
+        <div class="stat-label">Hits in last 24h</div>
+        <div class="stat-value" id="hits-24h">0</div>
+        <div class="stat-note">Based on request timestamps stored in D1</div>
+      </article>
+    </section>
+
+    <section class="grid content-grid">
+      <article class="card">
+        <h2>Hits by honeypot</h2>
+        <canvas id="honeypot-chart"></canvas>
+      </article>
+
+      <article class="card">
+        <h2>Top attacker countries</h2>
+        <canvas id="country-chart"></canvas>
+      </article>
+    </section>
+
+    <section class="grid content-grid" style="margin-top: 16px;">
+      <article class="card">
+        <h2>Geographic map</h2>
+        <div id="map"></div>
+        <p class="footer-note">Circle size is based on hit count per latitude/longitude pair. Some local/dev requests may not have coordinates.</p>
+      </article>
+
+      <article class="card">
+        <h2>Top ASN organizations</h2>
+        <div id="asn-table"></div>
+      </article>
+    </section>
+
+    <section class="grid tables-grid" style="margin-top: 16px;">
+      <article class="card">
+        <h2>Top attempted passwords</h2>
+        <div id="password-table"></div>
+      </article>
+
+      <article class="card">
+        <h2>Top attempted usernames</h2>
+        <div id="username-table"></div>
+      </article>
+    </section>
+
+    <section class="card" style="margin-top: 16px;">
+      <h2>Recent activity</h2>
+      <div id="recent-table"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      honeypotChart: null,
+      countryChart: null,
+      map: null,
+      mapLayer: null
+    };
+
+    const emptyOverview = {
+      totals: {
+        total_hits: 0,
+        known_scanner_hits: 0,
+        known_scanner_percentage: 0,
+        hits_last_24h: 0
+      },
+      hits_by_honeypot: [],
+      top_countries: [],
+      top_asn_orgs: [],
+      top_attempted_passwords: [],
+      top_attempted_usernames: [],
+      recent_hits: []
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      refreshDashboard();
+      setInterval(refreshDashboard, 5000);
+    });
+
+    async function refreshDashboard() {
+      try {
+        document.getElementById("refresh-status").textContent = "Refreshing...";
+
+        const [overview, mapData] = await Promise.all([
+          fetchJson("/api/overview"),
+          fetchJson("/api/map")
+        ]);
+
+        renderOverview(overview || emptyOverview);
+        renderMap((mapData && mapData.points) || []);
+        document.getElementById("last-updated").textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        document.getElementById("refresh-status").textContent = "Auto-refresh: every 5s";
+      } catch (error) {
+        console.error(error);
+        document.getElementById("refresh-status").textContent = "Refresh failed. Check API routes.";
+      }
+    }
+
+    async function fetchJson(path) {
+      const response = await fetch(path, { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error(`${path} returned ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    function renderOverview(data) {
+      const totals = data.totals || emptyOverview.totals;
+
+      setText("total-hits", formatNumber(totals.total_hits));
+      setText("scanner-percent", `${totals.known_scanner_percentage || 0}%`);
+      setText("scanner-note", `${formatNumber(totals.known_scanner_hits)} known scanner hits`);
+      setText("hits-24h", formatNumber(totals.hits_last_24h));
+
+      renderBarChart(
+        "honeypotChart",
+        "honeypot-chart",
+        data.hits_by_honeypot || [],
+        "honeypot",
+        "count",
+        "Hits"
+      );
+
+      renderBarChart(
+        "countryChart",
+        "country-chart",
+        data.top_countries || [],
+        "country",
+        "count",
+        "Hits"
+      );
+
+      renderSimpleTable("asn-table", ["ASN organization", "Hits"], data.top_asn_orgs || [], row => [
+        escapeHtml(row.asn_org || "Unknown"),
+        formatNumber(row.count)
+      ]);
+
+      renderSimpleTable("password-table", ["Password", "Attempts"], data.top_attempted_passwords || [], row => [
+        `<span class="mono">${escapeHtml(row.value)}</span>`,
+        formatNumber(row.count)
+      ]);
+
+      renderSimpleTable("username-table", ["Username", "Attempts"], data.top_attempted_usernames || [], row => [
+        `<span class="mono">${escapeHtml(row.value)}</span>`,
+        formatNumber(row.count)
+      ]);
+
+      renderRecentTable(data.recent_hits || []);
+    }
+
+    function renderBarChart(stateKey, canvasId, rows, labelKey, valueKey, datasetLabel) {
+      const canvas = document.getElementById(canvasId);
+      const labels = rows.map(row => row[labelKey] || "Unknown");
+      const values = rows.map(row => Number(row[valueKey] || 0));
+
+      if (state[stateKey]) {
+        state[stateKey].data.labels = labels;
+        state[stateKey].data.datasets[0].data = values;
+        state[stateKey].update();
+        return;
+      }
+
+      state[stateKey] = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: datasetLabel,
+            data: values,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#cbd5e1" },
+              grid: { color: "rgba(148, 163, 184, 0.12)" }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: "#cbd5e1", precision: 0 },
+              grid: { color: "rgba(148, 163, 184, 0.12)" }
+            }
+          }
+        }
+      });
+    }
+
+    function initMap() {
+      state.map = L.map("map", {
+        center: [20, 0],
+        zoom: 2,
+        worldCopyJump: true
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(state.map);
+
+      state.mapLayer = L.layerGroup().addTo(state.map);
+    }
+
+    function renderMap(points) {
+      state.mapLayer.clearLayers();
+
+      if (!points.length) {
+        return;
+      }
+
+      const bounds = [];
+
+      for (const point of points) {
+        const lat = Number(point.latitude);
+        const lon = Number(point.longitude);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+          continue;
+        }
+
+        const count = Number(point.count || 1);
+        const radius = Math.max(6, Math.min(36, 6 + count * 2));
+
+        L.circleMarker([lat, lon], {
+          radius,
+          weight: 1,
+          fillOpacity: 0.55
+        })
+          .bindPopup(`<strong>${escapeHtml(point.country || "Unknown")}</strong><br>${formatNumber(count)} hit${count === 1 ? "" : "s"}`)
+          .addTo(state.mapLayer);
+
+        bounds.push([lat, lon]);
+      }
+
+      if (bounds.length > 0) {
+        state.map.fitBounds(bounds, {
+          padding: [30, 30],
+          maxZoom: 5
+        });
+      }
+    }
+
+    function renderSimpleTable(targetId, headers, rows, mapRow) {
+      const target = document.getElementById(targetId);
+
+      if (!rows.length) {
+        target.innerHTML = `<div class="empty">No data yet.</div>`;
+        return;
+      }
+
+      const headerHtml = headers.map(header => `<th>${escapeHtml(header)}</th>`).join("");
+      const rowsHtml = rows.map(row => {
+        const cells = mapRow(row).map(value => `<td>${value}</td>`).join("");
+        return `<tr>${cells}</tr>`;
+      }).join("");
+
+      target.innerHTML = `
+        <table>
+          <thead><tr>${headerHtml}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+
+    function renderRecentTable(rows) {
+      const target = document.getElementById("recent-table");
+
+      if (!rows.length) {
+        target.innerHTML = `<div class="empty">No recent activity yet. Visit a honeypot URL or submit a test login after deployment.</div>`;
+        return;
+      }
+
+      const rowsHtml = rows.map(hit => {
+        const scannerTag = hit.is_known_scanner
+          ? `<span class="tag scanner">scanner</span>`
+          : `<span class="tag normal">other</span>`;
+
+        return `
+          <tr>
+            <td>${formatTimestamp(hit.timestamp)}</td>
+            <td><span class="mono">${escapeHtml(hit.honeypot || "")}</span></td>
+            <td>${escapeHtml(hit.method || "")}</td>
+            <td class="truncate mono" title="${escapeAttribute(hit.path || "")}">${escapeHtml(hit.path || "")}</td>
+            <td class="mono">${escapeHtml(hit.client_ip || "Unknown")}</td>
+            <td>${escapeHtml(hit.country || "Unknown")}</td>
+            <td class="truncate" title="${escapeAttribute(hit.asn_org || "Unknown")}">${escapeHtml(hit.asn_org || "Unknown")}</td>
+            <td class="truncate" title="${escapeAttribute(hit.user_agent || "")}">${escapeHtml(hit.user_agent || "Unknown")}</td>
+            <td>${scannerTag}</td>
+          </tr>
+        `;
+      }).join("");
+
+      target.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Honeypot</th>
+              <th>Method</th>
+              <th>Path</th>
+              <th>IP</th>
+              <th>Country</th>
+              <th>ASN org</th>
+              <th>User agent</th>
+              <th>Signal</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat().format(Number(value || 0));
+    }
+
+    function formatTimestamp(value) {
+      if (!value) {
+        return "Unknown";
+      }
+
+      return new Date(Number(value)).toLocaleString();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replaceAll("`", "&#096;");
+    }
+  </script>
 </body>
 </html>

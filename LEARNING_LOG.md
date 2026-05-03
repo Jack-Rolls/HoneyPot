@@ -30,3 +30,11 @@
 **Why:** Building the API before the UI keeps the dashboard clean: the frontend only needs to poll two JSON endpoints instead of embedding SQL or data-shaping logic in browser JavaScript.
 
 **Interview hook:** I separated telemetry collection from analytics presentation by giving the dashboard a small API layer that aggregates D1 events into security-friendly summaries.
+
+## 2026-05-03 — Phase 5: Dashboard frontend
+
+**What:** Replaced the placeholder dashboard page with a vanilla HTML/CSS/JS dashboard using Chart.js for charts and Leaflet for the map.
+
+**Why:** Keeping the frontend framework-free makes the project easier to explain in interviews and keeps all complexity focused on the Cloudflare Workers, D1 logging, and security telemetry model.
+
+**Interview hook:** I built a lightweight browser dashboard that polls two Worker API routes and turns raw honeypot events into attacker-focused visual summaries.
