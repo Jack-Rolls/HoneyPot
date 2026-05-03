@@ -38,3 +38,11 @@
 **Why:** Keeping the frontend framework-free makes the project easier to explain in interviews and keeps all complexity focused on the Cloudflare Workers, D1 logging, and security telemetry model.
 
 **Interview hook:** I built a lightweight browser dashboard that polls two Worker API routes and turns raw honeypot events into attacker-focused visual summaries.
+
+## 2026-05-03 — Phase 6: Local end-to-end testing
+
+**What:** Verified all four honeypot Workers write to the same local D1 database and confirmed the dashboard API reads the aggregated telemetry.
+
+**Why:** Local end-to-end testing proved the shared logging model works before deploying anything publicly. Using one shared `--persist-to ../.local-state` location let separate Worker folders write to and read from the same local D1 state.
+
+**Interview hook:** I validated the full telemetry pipeline locally: bait endpoint hit → asynchronous D1 log write → dashboard API aggregation → browser dashboard visualization.
