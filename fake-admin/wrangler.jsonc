@@ -1,0 +1,13 @@
+{
+  "name": "fake-admin",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-03",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "honey-db",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}

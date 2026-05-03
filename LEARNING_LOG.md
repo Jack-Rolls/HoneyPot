@@ -14,3 +14,11 @@
 **Why:** These are the simplest honeypots because they do not need forms or static assets. Building them first proves the repeated Worker pattern: route request, return safe bait content, and log the hit asynchronously through the shared D1 logger.
 
 **Interview hook:** I started with low-complexity honeypots to validate the shared logging architecture before adding credential-capture flows and the analytics dashboard.
+
+## 2026-05-03 — Phase 3: Credential-capture honeypots
+
+**What:** Added WordPress-style and phpMyAdmin-style login Workers that record attempted usernames and passwords.
+
+**Why:** Credential-capture routes create more interesting security telemetry than passive file exposure because scanner and bot traffic often submits common username/password combinations. The pages are Worker-rendered instead of static assets so every page view and form submission reliably passes through logging.
+
+**Interview hook:** I built credential-focused honeypots that look like common internet-exposed admin surfaces while keeping them safe, stateless, and unable to execute or forward attacker input.
