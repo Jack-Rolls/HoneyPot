@@ -46,3 +46,11 @@
 **Why:** Local end-to-end testing proved the shared logging model works before deploying anything publicly. Using one shared `--persist-to ../.local-state` location let separate Worker folders write to and read from the same local D1 state.
 
 **Interview hook:** I validated the full telemetry pipeline locally: bait endpoint hit → asynchronous D1 log write → dashboard API aggregation → browser dashboard visualization.
+
+## 2026-05-03 — Phase 8: README and interview prep
+
+**What:** Added the final README and interview prep guide for explaining the honeypot network.
+
+**Why:** The project is now deployed and working, so the final step is making it understandable to recruiters and interviewers with a clear architecture explanation, demo URLs, safety notes, and concise technical explanations.
+
+**Interview hook:** I documented the project as a complete security engineering case study: design goal, architecture, telemetry pipeline, local testing, deployment, ethics, and tradeoffs.
