@@ -45,7 +45,11 @@ export async function logHit(
   try {
     const url = new URL(request.url);
     const cf = getCloudflareMetadata(request);
-    const headersJson = JSON.stringify(Object.fromEntries(Array.from(request.headers)));
+    const headers: Record<string, string> = {};
+    request.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    const headersJson = JSON.stringify(headers);
     const userAgent = request.headers.get("user-agent") || "";
     const clientIp = request.headers.get("cf-connecting-ip") || null;
     const bodyPreview = options.bodyPreview ?? await getBodyPreview(request);

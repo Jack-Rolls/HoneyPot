@@ -10,7 +10,7 @@
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIINfQgiPzMYONVcGKbM0NfJw9my1x7IZY="
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin=""
   >
   <script
@@ -333,7 +333,8 @@
       countryChart: null,
       map: null,
       mapLayer: null,
-      lastMapSignature: null
+      lastMapSignature: null,
+      mapErrorOverlay: null
     };
 
     const emptyOverview = {
@@ -380,11 +381,8 @@
         const mapData = await fetchJson("/api/map");
         renderMap((mapData && mapData.points) || []);
       } catch (mapError) {
-        console.error('Map fetch failed:', mapError);
-        const mapEl = document.getElementById("map");
-        if (mapEl) {
-          mapEl.innerHTML = "<p style='padding: 20px; color: var(--muted);'>Geographic activity data unavailable</p>";
-        }
+        console.warn("Map fetch failed:", mapError);
+        showMapError("Geographic activity data unavailable");
       }
     }
 
@@ -491,33 +489,90 @@
         worldCopyJump: true
       });
 
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      const tileLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
         subdomains: "abcd",
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
       }).addTo(state.map);
 
-      state.map.on('tileerror', (e) => console.warn('Tile failed to load:', e));
+      tileLayer.on("tileerror", (e) => {
+        console.warn("Map tile failed to load", e);
+      });
 
       state.mapLayer = L.layerGroup().addTo(state.map);
 
-      requestAnimationFrame(() => state.map.invalidateSize());
-      setTimeout(() => state.map.invalidateSize(), 250);
+      scheduleMapResize();
+      window.addEventListener("resize", scheduleMapResize);
+    }
+
+    function scheduleMapResize() {
+      if (!state.map) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        state.map.invalidateSize({ pan: false });
+      });
+
+      setTimeout(() => {
+        state.map.invalidateSize({ pan: false });
+      }, 250);
+    }
+
+    function showMapError(message) {
+      const mapEl = document.getElementById("map");
+      if (!mapEl) {
+        return;
+      }
+
+      if (!state.mapErrorOverlay) {
+        const overlay = document.createElement("div");
+        overlay.className = "map-error-overlay";
+        overlay.style.position = "absolute";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.right = "0";
+        overlay.style.bottom = "0";
+        overlay.style.display = "flex";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.background = "rgba(15, 23, 42, 0.85)";
+        overlay.style.color = "var(--text)";
+        overlay.style.padding = "20px";
+        overlay.style.textAlign = "center";
+        overlay.style.pointerEvents = "none";
+        overlay.style.zIndex = "1000";
+        state.mapErrorOverlay = overlay;
+        mapEl.appendChild(overlay);
+      }
+
+      state.mapErrorOverlay.textContent = message;
+      state.mapErrorOverlay.style.display = "flex";
+    }
+
+    function hideMapError() {
+      if (state.mapErrorOverlay) {
+        state.mapErrorOverlay.style.display = "none";
+      }
     }
 
     function renderMap(points) {
+      hideMapError();
+      scheduleMapResize();
+
       const validPoints = points.filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
       const signature = JSON.stringify(validPoints.map(p => [p.latitude, p.longitude, p.count]).sort((a, b) => a[0] - b[0] || a[1] - b[1]));
 
       if (state.lastMapSignature === signature) {
+        scheduleMapResize();
         return;
       }
 
       state.lastMapSignature = signature;
-
       state.mapLayer.clearLayers();
 
       if (!validPoints.length) {
+        scheduleMapResize();
         return;
       }
 
@@ -547,7 +602,7 @@
         });
       }
 
-      state.map.invalidateSize();
+      scheduleMapResize();
     }
 
     function renderInsights(data) {
