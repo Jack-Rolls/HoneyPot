@@ -1,0 +1,12 @@
+{
+  "name": "cf-honeypot",
+  "version": "1.0.0",
+  "description": "A Cloudflare Workers-based honeypot system",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "typescript": "^5.0.0"
+  }
+}
