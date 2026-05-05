@@ -1,15 +1,6 @@
 interface Env {
   DB: D1Database;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
-
-interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  first<T = unknown>(): Promise<T | null>;
-  all<T = unknown>(): Promise<{ results: T[] }>;
+  AI: Ai;
 }
 
 interface CountRow {
@@ -49,7 +40,7 @@ interface RecentHitRow {
   region: string | null;
   city: string | null;
   user_agent: string | null;
-  is_known_scanner: number | null;
+  is_known_scanner: boolean;
 }
 
 interface MapRow {
@@ -77,6 +68,10 @@ export default {
 
     if (url.pathname === "/api/map") {
       return getMap(env);
+    }
+
+    if (url.pathname === "/api/insights") {
+      return getInsights(env);
     }
 
     return jsonResponse({ error: "not_found" }, 404);
@@ -194,6 +189,57 @@ async function getMap(env: Env): Promise<Response> {
   }
 }
 
+async function getInsights(env: Env): Promise<Response> {
+  try {
+    const since = Date.now() - ONE_DAY_MS;
+
+    const [
+      totalHits,
+      topHoneypots,
+      topCountries,
+      topAsnOrgs,
+      topUsernames,
+      topPasswords,
+      topPaths
+    ] = await Promise.all([
+      getCount(env, "SELECT COUNT(*) AS count FROM hits WHERE timestamp >= ?", [since]),
+      getAll<HoneypotCountRow>(env, "SELECT honeypot, COUNT(*) AS count FROM hits WHERE timestamp >= ? GROUP BY honeypot ORDER BY count DESC LIMIT 5", [since]),
+      getAll<CountryCountRow>(env, "SELECT COALESCE(country, 'Unknown') AS country, COUNT(*) AS count FROM hits WHERE timestamp >= ? GROUP BY COALESCE(country, 'Unknown') ORDER BY count DESC LIMIT 5", [since]),
+      getAll<AsnOrgCountRow>(env, "SELECT COALESCE(asn_org, 'Unknown') AS asn_org, COUNT(*) AS count FROM hits WHERE timestamp >= ? GROUP BY COALESCE(asn_org, 'Unknown') ORDER BY count DESC LIMIT 5", [since]),
+      getAll<CredentialCountRow>(env, "SELECT COALESCE(attempted_username, 'Unknown') AS value, COUNT(*) AS count FROM hits WHERE timestamp >= ? AND attempted_username IS NOT NULL GROUP BY COALESCE(attempted_username, 'Unknown') ORDER BY count DESC LIMIT 5", [since]),
+      getAll<CredentialCountRow>(env, "SELECT COALESCE(attempted_password, 'Unknown') AS value, COUNT(*) AS count FROM hits WHERE timestamp >= ? AND attempted_password IS NOT NULL GROUP BY COALESCE(attempted_password, 'Unknown') ORDER BY count DESC LIMIT 5", [since]),
+      getAll<CredentialCountRow>(env, "SELECT path, COUNT(*) AS count FROM hits WHERE timestamp >= ? GROUP BY path ORDER BY count DESC LIMIT 10", [since])
+    ]);
+
+    const dataSummary = `Total hits: ${totalHits}. Top honeypots: ${topHoneypots.map(h => `${h.honeypot} (${h.count})`).join(', ')}. Top countries: ${topCountries.map(c => `${c.country} (${c.count})`).join(', ')}. Top ASN orgs: ${topAsnOrgs.map(a => `${a.asn_org} (${a.count})`).join(', ')}. Top usernames: ${topUsernames.map(u => `${u.value} (${u.count})`).join(', ')}. Top passwords: ${topPasswords.map(p => `${p.value} (${p.count})`).join(', ')}. Top paths: ${topPaths.map(p => `${p.value} (${p.count})`).join(', ')}.`;
+
+    let summary = "No AI insights available. " + dataSummary;
+
+    try {
+      const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+        messages: [
+          { role: 'system', content: 'You are a security analyst. Generate a concise one-paragraph threat intelligence summary based on honeypot data.' },
+          { role: 'user', content: `Based on the following honeypot data from the last 24 hours, generate a concise one-paragraph security threat intelligence summary: ${dataSummary}` }
+        ]
+      });
+      summary = aiResponse.response as string;
+    } catch (aiError) {
+      console.error('AI failed:', aiError);
+    }
+
+    return jsonResponse({
+      summary,
+      generated_at: new Date().toISOString(),
+      source_window_hours: 24
+    });
+  } catch (error) {
+    return jsonResponse({
+      error: "insights_query_failed",
+      message: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+}
+
 async function getCount(env: Env, query: string, values: unknown[] = []): Promise<number> {
   const statement = bindValues(env.DB.prepare(query), values);
   const row = await statement.first<CountRow>();
@@ -217,7 +263,7 @@ function bindValues(statement: D1PreparedStatement, values: unknown[]): D1Prepar
 function normalizeRecentHit(hit: RecentHitRow): RecentHitRow & { is_known_scanner: boolean } {
   return {
     ...hit,
-    is_known_scanner: hit.is_known_scanner === 1
+    is_known_scanner: Boolean(hit.is_known_scanner)
   };
 }
 

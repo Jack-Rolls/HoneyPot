@@ -266,6 +266,15 @@
       </article>
     </section>
 
+    <section class="grid" style="margin-bottom: 16px;">
+      <article class="card">
+        <h2>AI threat briefing</h2>
+        <div id="ai-insights">
+          <p>Loading AI insights...</p>
+        </div>
+      </article>
+    </section>
+
     <section class="grid content-grid">
       <article class="card">
         <h2>Hits by honeypot</h2>
@@ -342,13 +351,15 @@
       try {
         document.getElementById("refresh-status").textContent = "Refreshing...";
 
-        const [overview, mapData] = await Promise.all([
+        const [overview, mapData, insights] = await Promise.all([
           fetchJson("/api/overview"),
-          fetchJson("/api/map")
+          fetchJson("/api/map"),
+          fetchJson("/api/insights").catch(() => ({ summary: "AI insights unavailable. Check Workers AI binding." }))
         ]);
 
         renderOverview(overview || emptyOverview);
         renderMap((mapData && mapData.points) || []);
+        renderInsights(insights);
         document.getElementById("last-updated").textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
         document.getElementById("refresh-status").textContent = "Auto-refresh: every 5s";
       } catch (error) {
@@ -504,6 +515,15 @@
           padding: [30, 30],
           maxZoom: 5
         });
+      }
+    }
+
+    function renderInsights(data) {
+      const target = document.getElementById("ai-insights");
+      if (data && data.summary) {
+        target.innerHTML = `<p>${escapeHtml(data.summary)}</p>`;
+      } else {
+        target.innerHTML = `<p>AI insights unavailable.</p>`;
       }
     }
 
