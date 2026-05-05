@@ -144,8 +144,17 @@
 
     #map {
       height: 420px;
+      width: 100%;
+      min-height: 420px;
+      position: relative;
       border-radius: 14px;
       overflow: hidden;
+      background: var(--panel-2);
+    }
+
+    .leaflet-container {
+      width: 100%;
+      height: 100%;
       background: var(--panel-2);
     }
 
@@ -323,7 +332,8 @@
       honeypotChart: null,
       countryChart: null,
       map: null,
-      mapLayer: null
+      mapLayer: null,
+      lastMapSignature: null
     };
 
     const emptyOverview = {
@@ -351,20 +361,30 @@
       try {
         document.getElementById("refresh-status").textContent = "Refreshing...";
 
-        const [overview, mapData, insights] = await Promise.all([
+        const [overview, insights] = await Promise.all([
           fetchJson("/api/overview"),
-          fetchJson("/api/map"),
           fetchJson("/api/insights").catch(() => ({ summary: "AI insights unavailable. Check Workers AI binding." }))
         ]);
 
         renderOverview(overview || emptyOverview);
-        renderMap((mapData && mapData.points) || []);
         renderInsights(insights);
         document.getElementById("last-updated").textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
         document.getElementById("refresh-status").textContent = "Auto-refresh: every 5s";
       } catch (error) {
         console.error(error);
         document.getElementById("refresh-status").textContent = "Refresh failed. Check API routes.";
+      }
+
+      // Fetch map separately to isolate failures
+      try {
+        const mapData = await fetchJson("/api/map");
+        renderMap((mapData && mapData.points) || []);
+      } catch (mapError) {
+        console.error('Map fetch failed:', mapError);
+        const mapEl = document.getElementById("map");
+        if (mapEl) {
+          mapEl.innerHTML = "<p style='padding: 20px; color: var(--muted);'>Geographic activity data unavailable</p>";
+        }
       }
     }
 
@@ -471,31 +491,41 @@
         worldCopyJump: true
       });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: "&copy; OpenStreetMap contributors"
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd",
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
       }).addTo(state.map);
 
+      state.map.on('tileerror', (e) => console.warn('Tile failed to load:', e));
+
       state.mapLayer = L.layerGroup().addTo(state.map);
+
+      requestAnimationFrame(() => state.map.invalidateSize());
+      setTimeout(() => state.map.invalidateSize(), 250);
     }
 
     function renderMap(points) {
+      const validPoints = points.filter(p => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+      const signature = JSON.stringify(validPoints.map(p => [p.latitude, p.longitude, p.count]).sort((a, b) => a[0] - b[0] || a[1] - b[1]));
+
+      if (state.lastMapSignature === signature) {
+        return;
+      }
+
+      state.lastMapSignature = signature;
+
       state.mapLayer.clearLayers();
 
-      if (!points.length) {
+      if (!validPoints.length) {
         return;
       }
 
       const bounds = [];
 
-      for (const point of points) {
+      for (const point of validPoints) {
         const lat = Number(point.latitude);
         const lon = Number(point.longitude);
-
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-          continue;
-        }
-
         const count = Number(point.count || 1);
         const radius = Math.max(6, Math.min(36, 6 + count * 2));
 
@@ -516,6 +546,8 @@
           maxZoom: 5
         });
       }
+
+      state.map.invalidateSize();
     }
 
     function renderInsights(data) {
