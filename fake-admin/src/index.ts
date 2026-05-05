@@ -13,6 +13,19 @@ interface Credentials {
 }
 
 const HONEYPOT_NAME = "fake-admin";
+const FAKE_ADMIN_LOGIN_PATHS = new Set([
+  "/",
+  "/wp-login.php",
+  "/wp-login.php/",
+  "/xmlrpc.php",
+  "/wp-config.php",
+  "/admin",
+  "/admin/",
+  "/administrator",
+  "/administrator/",
+  "/login",
+  "/login/"
+]);
 
 export default {
   async fetch(request: Request, env: Env, ctx: WorkerContext): Promise<Response> {
@@ -32,7 +45,7 @@ export default {
 
     ctx.waitUntil(logHit(request, env, { honeypot: HONEYPOT_NAME }));
 
-    if (url.pathname === "/" || url.pathname === "/wp-login.php") {
+    if (FAKE_ADMIN_LOGIN_PATHS.has(url.pathname.toLowerCase())) {
       return wordpressLoginPage();
     }
 

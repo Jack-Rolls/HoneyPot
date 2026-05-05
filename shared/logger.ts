@@ -19,6 +19,13 @@ interface CloudflareRequestMetadata {
   longitude?: string;
 }
 
+const SENSITIVE_HEADERS = new Set([
+  "cookie",
+  "authorization",
+  "set-cookie",
+  "proxy-authorization"
+]);
+
 const KNOWN_SCANNER_PATTERNS = [
   /masscan/i,
   /nmap/i,
@@ -47,7 +54,7 @@ export async function logHit(
     const cf = getCloudflareMetadata(request);
     const headers: Record<string, string> = {};
     request.headers.forEach((value, key) => {
-      headers[key] = value;
+      headers[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? "[redacted]" : value;
     });
     const headersJson = JSON.stringify(headers);
     const userAgent = request.headers.get("user-agent") || "";

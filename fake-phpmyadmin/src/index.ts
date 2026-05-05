@@ -13,6 +13,24 @@ interface Credentials {
 }
 
 const HONEYPOT_NAME = "fake-phpmyadmin";
+const PHP_MY_ADMIN_PATHS = new Set([
+  "/",
+  "/index.php",
+  "/phpmyadmin",
+  "/phpmyadmin/",
+  "/pma",
+  "/pma/",
+  "/mysql",
+  "/mysql/",
+  "/sqladmin",
+  "/sqladmin/",
+  "/dbadmin",
+  "/dbadmin/",
+  "/myadmin",
+  "/myadmin/",
+  "/admin/phpmyadmin",
+  "/admin/phpmyadmin/"
+]);
 
 export default {
   async fetch(request: Request, env: Env, ctx: WorkerContext): Promise<Response> {
@@ -32,7 +50,7 @@ export default {
 
     ctx.waitUntil(logHit(request, env, { honeypot: HONEYPOT_NAME }));
 
-    if (url.pathname === "/" || url.pathname === "/index.php" || url.pathname === "/phpmyadmin/" || url.pathname === "/phpMyAdmin/") {
+    if (PHP_MY_ADMIN_PATHS.has(url.pathname.toLowerCase())) {
       return phpMyAdminLoginPage();
     }
 

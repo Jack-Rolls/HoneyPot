@@ -1,12 +1,3 @@
-export interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
-
-export interface D1PreparedStatement {
-  bind(...values: unknown[]): D1PreparedStatement;
-  run(): Promise<unknown>;
-}
-
 export interface LoggerEnv {
   DB: D1Database;
 }
@@ -27,6 +18,13 @@ interface CloudflareRequestMetadata {
   latitude?: string;
   longitude?: string;
 }
+
+const SENSITIVE_HEADERS = new Set([
+  "cookie",
+  "authorization",
+  "set-cookie",
+  "proxy-authorization"
+]);
 
 const KNOWN_SCANNER_PATTERNS = [
   /masscan/i,
@@ -56,7 +54,7 @@ export async function logHit(
     const cf = getCloudflareMetadata(request);
     const headers: Record<string, string> = {};
     request.headers.forEach((value, key) => {
-      headers[key] = value;
+      headers[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? "[redacted]" : value;
     });
     const headersJson = JSON.stringify(headers);
     const userAgent = request.headers.get("user-agent") || "";
