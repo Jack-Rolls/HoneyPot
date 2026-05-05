@@ -3,3 +3,6 @@ node_modules/
 .env
 .dev.vars
 .local-state/
+AGENTS.md
+PRD.md
+LEARNING_LOG.md
