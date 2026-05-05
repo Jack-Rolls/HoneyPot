@@ -608,7 +608,14 @@
     function renderInsights(data) {
       const target = document.getElementById("ai-insights");
       if (data && data.summary) {
-        target.innerHTML = `<p>${escapeHtml(data.summary)}</p>`;
+        let html = `<p>${escapeHtml(data.summary)}</p>`;
+        if (data.mode === 'fallback') {
+          const reasonText = data.fallback_reason ? ` (${escapeHtml(data.fallback_reason)})` : '';
+          html += `<p style="color: var(--muted); font-size: 12px; margin-top: 8px;">⚠️ Fallback data${reasonText}</p>`;
+        } else if (data.mode === 'ai') {
+          html += `<p style="color: var(--good); font-size: 12px; margin-top: 8px;">✓ AI-generated insight</p>`;
+        }
+        target.innerHTML = html;
       } else {
         target.innerHTML = `<p>AI insights unavailable.</p>`;
       }
