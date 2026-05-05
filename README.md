@@ -1,6 +1,6 @@
 # Cloudflare Workers Honeypot Network
 
-A small deception network built on Cloudflare Workers. It deploys four independent honeypot Workers that imitate commonly exposed internet services, logs every request to a shared Cloudflare D1 database, and visualizes the activity in a live dashboard with charts, credential-attempt tables, recent activity, and a map.
+A deception network built on Cloudflare Workers that deploys honeypot services to collect security telemetry. Four independent Workers imitate commonly exposed internet services, log requests to a shared Cloudflare D1 database, and provide a live dashboard with charts, tables, and geographic activity visualization.
 
 ## Live demo
 
@@ -9,20 +9,6 @@ A small deception network built on Cloudflare Workers. It deploys four independe
 - Fake API key endpoint: https://fake-api-keys.jackrolls1185.workers.dev
 - Fake WordPress-style admin login: https://fake-admin.jackrolls1185.workers.dev
 - Fake phpMyAdmin-style login: https://fake-phpmyadmin.jackrolls1185.workers.dev
-
-## Why I built this
-
-I built this project to learn how Cloudflare Workers can be used as lightweight security telemetry collectors at the edge. The goal was not to build a vulnerable app. The goal was to build safe, inert bait services that look realistic enough for scanners and bots to touch, then centralize that traffic into a useful dashboard.
-
-This demonstrates:
-
-- Cloudflare Workers for globally deployed request handling
-- Cloudflare D1 for lightweight event storage
-- Worker bindings through wrangler.jsonc
-- ctx.waitUntil() for non-blocking logging
-- Cloudflare request metadata through request.cf
-- Vanilla HTML/CSS/JS dashboarding with Chart.js and Leaflet
-- Safe honeypot design that never executes or forwards attacker input
 
 ## Architecture
 
@@ -97,8 +83,9 @@ Reads from the shared D1 database and exposes:
 
 - GET /api/overview
 - GET /api/map
+- GET /api/insights
 
-The frontend polls those APIs every 5 seconds and renders total hits, scanner percentage, hits by honeypot, top countries, top ASN organizations, attempted usernames/passwords, recent activity, and a geographic map.
+The frontend polls those APIs every 5 seconds and renders total hits, scanner percentage, hits by honeypot, top countries, top ASN organizations, attempted usernames/passwords, recent activity, geographic activity, and AI-generated threat briefings.
 
 ## Data captured
 
@@ -189,6 +176,18 @@ This project is intentionally safe:
 - The dashboard is public for demo purposes, so it should not be used to store sensitive data.
 - The honeypots should be wound down after interviews or demo use if they are no longer needed.
 
+## Production hardening ideas
+
+For production deployments, consider:
+
+- Dashboard authentication to restrict access
+- IP address hashing or redaction for privacy compliance
+- Data retention policies with automated cleanup
+- Environment-specific Wrangler configurations (local/staging/production)
+- Alerting on unusual traffic spikes or patterns
+
+Note: This demo uses a shared D1 database ID across environments. Production versions should separate configurations using Wrangler environments.
+
 ## Wind-down commands
 
 To delete the deployed Workers:
@@ -199,13 +198,4 @@ To delete the deployed Workers:
     cd ../fake-phpmyadmin && wrangler delete
     cd ../honey-dashboard && wrangler delete
 
-To delete the D1 database, use the Cloudflare dashboard or Wrangler’s D1 delete command after confirming the exact database name or ID.
-
-## What I learned
-
-- How to structure multiple Cloudflare Workers around one shared D1 database.
-- How to use ctx.waitUntil() so logging does not slow down or break user-facing responses.
-- How to safely design honeypots that collect telemetry without executing or forwarding malicious input.
-- How Cloudflare request metadata can enrich security events with ASN, geolocation, and client details.
-- How to build a lightweight dashboard without adding unnecessary frontend framework complexity.
-- How to test multi-Worker systems locally with one shared --persist-to D1 state folder.
+To delete the D1 database, use the Cloudflare dashboard or Wrangler's D1 delete command after confirming the exact database name or ID.
